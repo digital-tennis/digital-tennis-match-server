@@ -106,3 +106,29 @@ test('create/join rate limit prevents room spam on one socket', async t => {
   const errors = []; for (let i = 0; i < 6; i++) errors.push((await f.host.next('error')).payload.code);
   assert.equal(errors.filter(x => x === 'RATE_LIMITED').length, 1);
 });
+
+test('real relay carries rematch consent for the finished match without allowing a guest snapshot',async t=>{
+  const f=await setup(t);await room(f);await agree(f);
+  const vote=input();vote.payload.kind='rematch';vote.payload.choice=1;vote.payload.matchId='finished';
+  f.guest.send('game.relay',{epoch:1,message:vote});assert.deepEqual((await f.host.next('relay.message')).payload.message,vote);
+  const state=snapshot();state.payload.rematchVotes=[true,true];f.host.send('game.relay',{epoch:1,message:state});
+  assert.deepEqual((await f.guest.next('relay.message')).payload.message.payload.rematchVotes,[true,true]);
+  f.guest.send('game.relay',{epoch:1,message:state});assert.equal((await f.guest.next('error')).payload.code,'INVALID_ROLE');
+});
+
+test('fresh swing contact and serve flags are bounded and preserved by the relay',async t=>{
+  const f=await setup(t);await room(f);await agree(f);const state=snapshot();
+  state.payload.players[0].swingContact=false;state.payload.players[0].swingServe=false;
+  state.payload.players[1].swingContact=true;state.payload.players[1].swingServe=true;
+  f.host.send('game.relay',{epoch:1,message:state});
+  assert.deepEqual((await f.guest.next('relay.message')).payload.message.payload.players,state.payload.players);
+  state.payload.players[0].swingContact='false';f.host.send('game.relay',{epoch:1,message:state});
+  assert.equal((await f.host.next('error')).payload.code,'INVALID_GAME_MESSAGE');
+});
+
+test('accepted stroke contact anchors relay unchanged and reject malformed coordinates',async t=>{
+ const f=await setup(t);await room(f);await agree(f);const state=snapshot();
+ Object.assign(state.payload.players[0],{swingContact:true,hasContactPoint:true,contactPoint:[1,1.4,-8]});
+ f.host.send('game.relay',{epoch:1,message:state});assert.deepEqual((await f.guest.next('relay.message')).payload.message.payload.players[0].contactPoint,[1,1.4,-8]);
+ state.payload.players[0].contactPoint=[1,2];f.host.send('game.relay',{epoch:1,message:state});assert.equal((await f.host.next('error')).payload.code,'INVALID_GAME_MESSAGE');
+});

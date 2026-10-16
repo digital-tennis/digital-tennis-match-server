@@ -44,7 +44,7 @@ Unity는 현재 **WebSocket relay**를 명시적으로 선택합니다. 실제 W
 
 ## 검증
 
-`npm test`는 단위 테스트와 실제 WebSocket 두 클라이언트 통합 테스트 20개를 실행합니다. 코드 충돌 10회, 만료/정리, 잘못된 JSON·범위, 권한 위조, 방 격리, 전송 합의, 릴레이, 재접속 토큰 교체를 확인합니다. CI도 Node 22에서 같은 검사를 수행합니다. Unity 실행 증거와 두 PC 검증 범위는 게임 저장소 README에 기록합니다.
+`npm test`는 단위 테스트와 실제 WebSocket 두 클라이언트 통합 테스트 24개를 실행합니다. 코드 충돌 10회, 만료/정리, 잘못된 JSON·범위, 권한 위조, 방 격리, 전송 합의, 릴레이, 재접속 토큰 교체를 확인합니다. CI도 Node 22에서 같은 검사를 수행합니다. Unity 실행 증거와 두 PC 검증 범위는 게임 저장소 README에 기록합니다.
 
 ## 개발할 기능과 제출 기준
 
@@ -71,3 +71,9 @@ Unity는 현재 **WebSocket relay**를 명시적으로 선택합니다. 실제 W
 - [모든 제품과 의존 관계](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/project/repositories.md)
 
 라이선스는 코드와 제3자 자산 조건을 검토한 뒤 팀이 선택합니다.
+
+## 양측 동의 재경기
+
+게스트는 `kind=rematch`, `choice=1`(요청)/`0`(취소), 종료된 `matchId`를 일반 입력으로 중계합니다. 호스트 snapshot의 `rematchVotes=[host,guest]`는 boolean 2개이며 서버는 게스트의 상태/점수 발행을 허용하지 않습니다. 실제 경기 종료·두 동의·이전 경기 입력 차단·새 matchId 생성은 Unity 호스트의 책임입니다. 연결 끊김은 동의를 해제하며 재경기가 transport epoch나 방 역할을 바꾸지 않습니다. 선수의 `swingContact`/`swingServe`는 선택 boolean 메타데이터로 헛스윙과 서브 연출을 전달하고 점수를 결정하지 않습니다.
+
+실제 인정된 라켓 접촉의 `hasContactPoint/contactPoint`는 같은 스윙 ID에 연결된 유한한 3차원 좌표로 검증하여 그대로 전달합니다. Unity 게스트는 이를 버퍼된 스윙과 같은 시간선에 표시합니다.
