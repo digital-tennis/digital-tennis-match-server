@@ -19,3 +19,12 @@ test('skill requests cannot bypass epoch, event identity or normalized input che
   assert.throws(()=>validateGame('guest',1,malformed));
   assert.throws(()=>validateGame('guest',1,input('win-point')));
 });
+test('guest service intents preserve host authority and still validate context and ranges',()=>{
+  for(const kind of ['serve','faultServe','letServe','netServe']) {
+    assert.doesNotThrow(()=>validateGame('guest',1,input(kind)));
+    assert.throws(()=>validateGame('host',1,input(kind)));
+    assert.throws(()=>validateGame('guest',2,input(kind)));
+    const invalid=input(kind);invalid.payload.rallyId=0;
+    assert.throws(()=>validateGame('guest',1,invalid));
+  }
+});
