@@ -80,6 +80,15 @@ test('malformed request does not kill connection; heartbeat echoes request ID', 
   const id = f.host.send('heartbeat', { clientTimeMs: 1234 }); const ack = await f.host.next('heartbeat.ack');
   assert.equal(ack.requestId, id); assert.equal(ack.payload.clientTimeMs, 1234);
 });
+test('guest can relay the next service game intent without publishing score or winner',async t=>{
+  const f=await setup(t);await room(f);await agree(f);
+  const state=snapshot();state.payload.phase='WaitServe';state.payload.serverId='guest';state.payload.points=[0,0];
+  f.host.send('game.relay',{epoch:1,message:state});assert.equal((await f.guest.next('relay.message')).payload.message.payload.serverId,'guest');
+  const serve=input();serve.payload.kind='serve';serve.payload.rallyId=4;serve.payload.shotId=12;
+  f.guest.send('game.relay',{epoch:1,message:serve});assert.deepEqual((await f.host.next('relay.message')).payload.message,serve);
+  f.guest.send('game.relay',{epoch:1,message:{v:1,type:'result',epoch:1,payload:{matchId:'match-a',winner:'guest'}}});
+  assert.equal((await f.guest.next('error')).payload.code,'INVALID_ROLE');
+});
 test('explicit leave closes room; disconnected peer resumes with rotated token and new epoch', async t => {
   const f = await setup(t); await room(f); await agree(f);
   const original = f.app.rooms.rooms.values().next().value.players.guest.token;

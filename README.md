@@ -38,11 +38,13 @@ Unity는 현재 **WebSocket relay**를 명시적으로 선택합니다. 실제 W
 
 게임 릴레이는 `payload: {epoch, message}`이며 내부 message는 `v/type/epoch/payload`를 가집니다. 입력에는 `inputSeq/playerId=guest`, 상태에는 `tick`을 추가합니다. 서버 알림의 requestId는 null입니다. 알려지지 않은 추가 필드는 권한에 영향을 주지 않으며, 사용되는 모든 필드는 검사합니다. 입력 순번 중복 제거와 스냅샷 순서 검사는 Unity에서 처리합니다.
 
+게임 간 서버 교대를 위해 게스트 입력 kind에 `serve/faultServe/letServe/netServe`를 허용합니다. 서버는 이를 의도만 중계하며 현재 서버·랠리·샷 일치 여부와 실제 성공 판정은 Unity 호스트가 처리합니다. 신규 `score` 필드는 게임·세트·세트별 결과·경기 형식·엔드 교대를 전달하는 호스트 상태이며 중계 중 보존됩니다. 점수·결과 발행 권한은 호스트에만 있습니다.
+
 `src/protocol.js`는 봉투/게임 필드 검사, `src/rooms.js`는 방 수명/권한/전송 합의, `src/server.js`는 HTTP/WebSocket 실행입니다. [ws 공식 문서](https://github.com/websockets/ws)를 사용하며 압축은 끕니다. 큐가 느린 소켓의 송신 버퍼가 256KiB를 넘으면 종료하여 다른 방이 밀리지 않게 합니다.
 
 ## 검증
 
-`npm test`는 단위 테스트와 실제 WebSocket 두 클라이언트 통합 테스트 15개를 실행합니다. 코드 충돌 10회, 만료/정리, 잘못된 JSON·범위, 권한 위조, 방 격리, 전송 합의, 릴레이, 재접속 토큰 교체를 확인합니다. CI도 Node 22에서 같은 검사를 수행합니다. Unity 실행 증거와 두 PC 검증 범위는 게임 저장소 README에 기록합니다.
+`npm test`는 단위 테스트와 실제 WebSocket 두 클라이언트 통합 테스트 20개를 실행합니다. 코드 충돌 10회, 만료/정리, 잘못된 JSON·범위, 권한 위조, 방 격리, 전송 합의, 릴레이, 재접속 토큰 교체를 확인합니다. CI도 Node 22에서 같은 검사를 수행합니다. Unity 실행 증거와 두 PC 검증 범위는 게임 저장소 README에 기록합니다.
 
 ## 개발할 기능과 제출 기준
 
