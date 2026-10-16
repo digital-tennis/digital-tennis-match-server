@@ -28,3 +28,13 @@ test('guest service intents preserve host authority and still validate context a
     assert.throws(()=>validateGame('guest',1,invalid));
   }
 });
+
+test('rematch is a bounded guest consent intent, never a result or authority grant',()=>{
+  const vote=input('rematch',1);vote.payload.matchId='finished-match';
+  assert.doesNotThrow(()=>validateGame('guest',1,vote));
+  vote.payload.choice=0;assert.doesNotThrow(()=>validateGame('guest',1,vote));
+  for(const bad of [-1,2,'1',null]){vote.payload.choice=bad;assert.throws(()=>validateGame('guest',1,vote));}
+  vote.payload.choice=1;vote.payload.matchId='';assert.throws(()=>validateGame('guest',1,vote));
+  vote.payload.matchId='finished-match';assert.throws(()=>validateGame('host',1,vote));
+  assert.throws(()=>validateGame('guest',2,vote));
+});

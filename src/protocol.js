@@ -53,13 +53,16 @@ export function validateGame(sender, epoch, msg) {
   if (msg.type === 'input') {
     requireThat(sender === 'guest' && msg.playerId === 'guest', 'INVALID_ROLE');
     requireThat(uint(msg.inputSeq) && uint(p.eventId) && p.eventId > 0 && uint(p.rallyId) && p.rallyId > 0 && uint(p.shotId), 'INVALID_GAME_MESSAGE');
-    requireThat(['forehand', 'backhand', 'smash', 'volley', 'slice', 'lob', 'skill', 'character', 'serve', 'faultServe', 'letServe', 'netServe'].includes(p.kind) && bounded(p.power01, 0, 1) && bounded(p.aimX, -1, 1) && bounded(p.aimZ, -1, 1), 'INVALID_GAME_MESSAGE');
+    requireThat(['forehand', 'backhand', 'smash', 'volley', 'slice', 'lob', 'skill', 'character', 'serve', 'faultServe', 'letServe', 'netServe', 'rematch'].includes(p.kind) && bounded(p.power01, 0, 1) && bounded(p.aimX, -1, 1) && bounded(p.aimZ, -1, 1), 'INVALID_GAME_MESSAGE');
+    if (p.kind === 'rematch') requireThat(text(p.matchId, 64) && (p.choice === 0 || p.choice === 1), 'INVALID_GAME_MESSAGE');
     if (p.kind === 'character') requireThat(Number.isInteger(p.choice) && p.choice >= 0 && p.choice < 15, 'INVALID_GAME_MESSAGE');
   } else {
     requireThat(sender === 'host', 'INVALID_ROLE');
     if (msg.type === 'snapshot') {
       requireThat(uint(msg.tick) && text(p.matchId, 64) && object(p.ball) && vector(p.ball.pos) && vector(p.ball.vel), 'INVALID_GAME_MESSAGE');
       requireThat(Array.isArray(p.players) && p.players.length === 2 && p.players[0]?.id === 'host' && p.players[1]?.id === 'guest' && p.players.every(x => vector(x.pos)), 'INVALID_GAME_MESSAGE');
+      for (const player of p.players) for (const key of ['swingContact','swingServe']) if (player[key] != null) requireThat(typeof player[key] === 'boolean', 'INVALID_GAME_MESSAGE');
+      if (p.rematchVotes != null) requireThat(Array.isArray(p.rematchVotes) && p.rematchVotes.length === 2 && p.rematchVotes.every(v => typeof v === 'boolean'), 'INVALID_GAME_MESSAGE');
       requireThat(Array.isArray(p.points) && p.points.length === 2 && p.points.every(n => Number.isInteger(n) && n >= 0 && n <= 1000000), 'INVALID_GAME_MESSAGE');
       requireThat(['WaitServe', 'InFlight', 'Rally', 'PointEnd', 'MatchEnd'].includes(p.phase) && role(p.serverId) && role(p.lastHitter) && ['left', 'right'].includes(p.serveSide), 'INVALID_GAME_MESSAGE');
       requireThat(Number.isInteger(p.faultCount) && p.faultCount >= 0 && p.faultCount <= 1 && Number.isInteger(p.bounceCount) && p.bounceCount >= 0 && p.bounceCount <= 100 && uint(p.rallyId) && p.rallyId > 0 && uint(p.shotId) && uint(p.lastProcessedInputSeq), 'INVALID_GAME_MESSAGE');
