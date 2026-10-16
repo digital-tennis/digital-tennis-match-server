@@ -125,3 +125,10 @@ test('fresh swing contact and serve flags are bounded and preserved by the relay
   state.payload.players[0].swingContact='false';f.host.send('game.relay',{epoch:1,message:state});
   assert.equal((await f.host.next('error')).payload.code,'INVALID_GAME_MESSAGE');
 });
+
+test('accepted stroke contact anchors relay unchanged and reject malformed coordinates',async t=>{
+ const f=await setup(t);await room(f);await agree(f);const state=snapshot();
+ Object.assign(state.payload.players[0],{swingContact:true,hasContactPoint:true,contactPoint:[1,1.4,-8]});
+ f.host.send('game.relay',{epoch:1,message:state});assert.deepEqual((await f.guest.next('relay.message')).payload.message.payload.players[0].contactPoint,[1,1.4,-8]);
+ state.payload.players[0].contactPoint=[1,2];f.host.send('game.relay',{epoch:1,message:state});assert.equal((await f.host.next('error')).payload.code,'INVALID_GAME_MESSAGE');
+});

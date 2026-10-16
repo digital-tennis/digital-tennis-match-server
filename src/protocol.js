@@ -61,7 +61,8 @@ export function validateGame(sender, epoch, msg) {
     if (msg.type === 'snapshot') {
       requireThat(uint(msg.tick) && text(p.matchId, 64) && object(p.ball) && vector(p.ball.pos) && vector(p.ball.vel), 'INVALID_GAME_MESSAGE');
       requireThat(Array.isArray(p.players) && p.players.length === 2 && p.players[0]?.id === 'host' && p.players[1]?.id === 'guest' && p.players.every(x => vector(x.pos)), 'INVALID_GAME_MESSAGE');
-      for (const player of p.players) for (const key of ['swingContact','swingServe']) if (player[key] != null) requireThat(typeof player[key] === 'boolean', 'INVALID_GAME_MESSAGE');
+      for (const player of p.players) for (const key of ['swingContact','swingServe','hasContactPoint']) if (player[key] != null) requireThat(typeof player[key] === 'boolean', 'INVALID_GAME_MESSAGE');
+      for (const player of p.players) if (player.hasContactPoint === true) requireThat(player.swingContact === true && vector(player.contactPoint) && player.contactPoint.every(n => Math.abs(n) < 128), 'INVALID_GAME_MESSAGE');
       if (p.rematchVotes != null) requireThat(Array.isArray(p.rematchVotes) && p.rematchVotes.length === 2 && p.rematchVotes.every(v => typeof v === 'boolean'), 'INVALID_GAME_MESSAGE');
       requireThat(Array.isArray(p.points) && p.points.length === 2 && p.points.every(n => Number.isInteger(n) && n >= 0 && n <= 1000000), 'INVALID_GAME_MESSAGE');
       requireThat(['WaitServe', 'InFlight', 'Rally', 'PointEnd', 'MatchEnd'].includes(p.phase) && role(p.serverId) && role(p.lastHitter) && ['left', 'right'].includes(p.serveSide), 'INVALID_GAME_MESSAGE');
