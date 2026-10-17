@@ -24,3 +24,11 @@ test('direct channel failure negotiates fresh relay and never relays old direct 
   assert.throws(()=>rooms.handle(host,'game.relay',{epoch:1,message:{}},'11'),{code:'INVALID_EPOCH'});
   assert.throws(()=>rooms.handle(guest,'peer.failed',{epoch:1},'12'),{code:'INVALID_EPOCH'});
 });
+test('channel failure during commit handshake supersedes late direct controls without granting authority',()=>{
+  const {rooms,events,host,guest}=setup();rooms.handle(host,'transport.propose',{mode:'p2p',epoch:1},'3');
+  rooms.handle(guest,'peer.failed',{epoch:1},'4');assert.equal(events.at(-1).payload.preferRelay,true);assert.equal(events.at(-1).payload.epoch,0);
+  rooms.handle(guest,'transport.ack',{mode:'p2p',epoch:1},'5');assert.equal(events.at(-1).type,'transport.superseded');
+  rooms.handle(host,'transport.commit',{mode:'p2p',epoch:1},'6');assert.equal(events.at(-1).type,'transport.superseded');assert.notEqual(rooms.rooms.get('ABCDEF').state,'PLAYING');
+  assert.throws(()=>rooms.handle(guest,'transport.commit',{mode:'p2p',epoch:1},'7'),{code:'NOT_HOST'});
+  rooms.handle(host,'transport.propose',{mode:'relay',epoch:1},'8');rooms.handle(guest,'transport.ack',{mode:'relay',epoch:1},'9');rooms.handle(host,'transport.commit',{mode:'relay',epoch:1},'10');assert.equal(events.at(-1).payload.mode,'relay');
+});
