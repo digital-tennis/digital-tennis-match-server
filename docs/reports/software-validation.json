@@ -21,7 +21,7 @@
   },
   "container": {
     "buildAndHealthAndCreateJoin": true,
-    "imageId": "sha256:2c9771787b6f1b5a94330c52fd3027a81b3afeadb2bcbeecf4d17bb175c0c8ff",
+    "imageId": "sha256:c7bfb8d7f1f99e345c808ab55bf0ef5e5c8e829b971599234dd390e49610b684",
     "loopbackOnly": true,
     "user": "node",
     "readOnly": true,
@@ -29,7 +29,7 @@
     "sourceHashes": {
       "src/protocol.js": "18ac5f02624ff8c48f3dcd94d2e4ff6951f662fce10b72e4a8d69207691753e0",
       "src/server.js": "c4fe3e2e7b35869024d7cf7f86c6b9867e314ac8661c1a4324d4d8eeef7b9a86",
-      "src/rooms.js": "24e99a7e43a91555c2dffd8229d0f56ffc866409ce0f243b0f8f1f3d4c29bcd2"
+      "src/rooms.js": "78575edb529bcbc127749b13b89ea53b42f57ef8ed065382e2785657a6b4c10b"
     }
   },
   "composeConfigValidated": true,
