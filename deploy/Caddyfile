@@ -1,0 +1,7 @@
+{$TENNIS_DOMAIN} {
+    @allowed path /ws /health
+    handle @allowed {
+        reverse_proxy match:8080
+    }
+    respond 404
+}

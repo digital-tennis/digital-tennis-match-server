@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-18",
+  "unitAndSocketTests": {
+    "passed": 27,
+    "failed": 0
+  },
+  "load": {
+    "scope": "Local actual WebSocket transport load, not Unity matches or public capacity",
+    "rooms": 8,
+    "clients": 16,
+    "seconds": 5.0014280840000005,
+    "sent": 784,
+    "received": 784,
+    "relayed": 784,
+    "errors": 0,
+    "p50Ms": 0.8433340000001408,
+    "p95Ms": 1.767624999999498,
+    "p99Ms": 7.736375000000066,
+    "heapBytes": 10361640,
+    "roomsAfterLeave": 0
+  },
+  "container": {
+    "buildAndHealthAndCreateJoin": true,
+    "imageId": "sha256:2c9771787b6f1b5a94330c52fd3027a81b3afeadb2bcbeecf4d17bb175c0c8ff",
+    "loopbackOnly": true,
+    "user": "node",
+    "readOnly": true,
+    "testContainerRemoved": true
+  },
+  "composeConfigValidated": true,
+  "publicWssDeployed": false,
+  "sourceHashes": {
+    "src/protocol.js": "18ac5f02624ff8c48f3dcd94d2e4ff6951f662fce10b72e4a8d69207691753e0",
+    "src/server.js": "c4fe3e2e7b35869024d7cf7f86c6b9867e314ac8661c1a4324d4d8eeef7b9a86",
+    "src/rooms.js": "24e99a7e43a91555c2dffd8229d0f56ffc866409ce0f243b0f8f1f3d4c29bcd2"
+  }
+}

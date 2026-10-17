@@ -77,3 +77,9 @@ Unity는 현재 **WebSocket relay**를 명시적으로 선택합니다. 실제 W
 게스트는 `kind=rematch`, `choice=1`(요청)/`0`(취소), 종료된 `matchId`를 일반 입력으로 중계합니다. 호스트 snapshot의 `rematchVotes=[host,guest]`는 boolean 2개이며 서버는 게스트의 상태/점수 발행을 허용하지 않습니다. 실제 경기 종료·두 동의·이전 경기 입력 차단·새 matchId 생성은 Unity 호스트의 책임입니다. 연결 끊김은 동의를 해제하며 재경기가 transport epoch나 방 역할을 바꾸지 않습니다. 선수의 `swingContact`/`swingServe`는 선택 boolean 메타데이터로 헛스윙과 서브 연출을 전달하고 점수를 결정하지 않습니다.
 
 실제 인정된 라켓 접촉의 `hasContactPoint/contactPoint`는 같은 스윙 ID에 연결된 유한한 3차원 좌표로 검증하여 그대로 전달합니다. Unity 게스트는 이를 버퍼된 스윙과 같은 시간선에 표시합니다.
+
+## 직접 전송 협의와 운영 구성
+
+새 클라이언트는 SDP/ICE·peer.ready를 다음 epoch에 묶고, DataChannel 실패 시 peer.failed로 새 relay 협의를 요청할 수 있습니다. 기존 relay-only 클라이언트도 동작합니다. 서버의 협의 성공만으로 실제 P2P 성공을 주장하지 않습니다. 실제 게임 전송 증거는 연동 게임 PR에서 별도로 남깁니다.
+
+[WSS 배포·검증·부하 안내](docs/deployment.md), `Dockerfile`, `deploy/compose.yaml`을 제공합니다. 공용 도메인/호스팅 계정에 실제 배포한 상태는 아닙니다.

@@ -34,7 +34,7 @@ export class RoomManager {
     requireThat(room.state === 'WAITING' && room.players.host.client, 'ROOM_UNAVAILABLE');
     this.attach(room, 'guest', client); room.state = 'READY';
     this.welcome(room, 'guest', 'room.joined', requestId);
-    this.broadcast(room, 'room.ready', { code: room.code, state: room.state });
+    this.broadcast(room, 'room.ready', { code: room.code, state: room.state, epoch: room.epoch });
   }
   member(client) { const member = this.members.get(client); requireThat(member, 'NOT_IN_ROOM'); return member; }
   peer(member) { return member.room.players[member.role === 'host' ? 'guest' : 'host']; }
@@ -54,7 +54,18 @@ export class RoomManager {
     requireThat(peer?.client && member.client === client, 'PEER_UNAVAILABLE');
     if (type === 'peer.signal') {
       validateSignal(member.role, payload);
-      this.response(peer.client, 'peer.signal', { from: member.role, kind: payload.kind, data: payload.data });
+      // Old relay-only signaling clients omit epoch. New direct transport binds
+      // every SDP/ICE callback to the next negotiated epoch.
+      if (payload.epoch != null) requireThat(payload.epoch === room.epoch + 1 && ['READY', 'CONNECTING'].includes(room.state), 'INVALID_EPOCH');
+      this.response(peer.client, 'peer.signal', { from: member.role, kind: payload.kind, data: payload.data, epoch: payload.epoch ?? room.epoch + 1 });
+    } else if (type === 'peer.ready') {
+      requireThat(payload.epoch === room.epoch + 1 && ['READY', 'CONNECTING'].includes(room.state), 'INVALID_EPOCH');
+      this.response(peer.client, 'peer.ready', { from: member.role, epoch: payload.epoch });
+    } else if (type === 'peer.failed') {
+      requireThat(payload.epoch === room.epoch, 'INVALID_EPOCH');
+      if (room.mode !== 'p2p' || room.state !== 'PLAYING') return;
+      room.state = 'READY'; room.proposal = null;
+      this.broadcast(room, 'room.ready', { code: room.code, state: room.state, epoch: room.epoch, resume: true, preferRelay: true });
     } else if (type === 'transport.propose') {
       requireThat(member.role === 'host', 'NOT_HOST'); validateTransport(payload);
       requireThat(payload.epoch === room.epoch + 1, 'INVALID_EPOCH');
