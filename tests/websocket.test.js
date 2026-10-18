@@ -43,6 +43,15 @@ async function agree(f, epoch = 1) {
 }
 const input = () => ({ v: 1, type: 'input', epoch: 1, inputSeq: 42, playerId: 'guest', payload: { eventId: 42, kind: 'backhand', power01: .35, aimX: .1, aimZ: 0, rallyId: 1, shotId: 2 } });
 const snapshot = () => ({ v: 1, type: 'snapshot', epoch: 1, tick: 120, payload: { matchId: 'match-a', ball: { pos: [0, 1, 3], vel: [0, -2, 8] }, players: [{ id: 'host', pos: [0, .85, -9] }, { id: 'guest', pos: [0, .85, 9] }], points: [2, 1], phase: 'Rally', serverId: 'host', serveSide: 'left', faultCount: 0, lastHitter: 'host', bounceCount: 1, rallyId: 4, shotId: 12, lastProcessedInputSeq: 42 } });
+test('actual control sockets agree direct mode then request a fresh relay after channel failure', async t=>{
+  const f=await setup(t);await room(f);
+  f.host.send('peer.signal',{epoch:1,kind:'offer',data:{type:'offer',sdp:'fixture SDP; not proof of DataChannel'}});assert.equal((await f.guest.next('peer.signal')).payload.epoch,1);
+  f.guest.send('peer.ready',{epoch:1});assert.equal((await f.host.next('peer.ready')).payload.from,'guest');
+  f.host.send('transport.propose',{mode:'p2p',epoch:1});await f.guest.next('transport.propose');f.guest.send('transport.ack',{mode:'p2p',epoch:1});await f.host.next('transport.ack');f.host.send('transport.commit',{mode:'p2p',epoch:1});await Promise.all([f.host.next('transport.committed'),f.guest.next('transport.committed')]);
+  f.host.send('game.relay',{epoch:1,message:snapshot()});assert.equal((await f.host.next('error')).payload.code,'INVALID_EPOCH','Direct mode never secretly routes game data over relay');
+  f.guest.send('peer.failed',{epoch:1});const notices=await Promise.all([f.host.next('room.ready'),f.guest.next('room.ready')]);assert.ok(notices.every(x=>x.payload.preferRelay&&x.payload.epoch===1));
+  await agree(f,2);const message=input();message.epoch=2;f.guest.send('game.relay',{epoch:2,message});assert.deepEqual((await f.host.next('relay.message')).payload.message,message);
+});
 test('two real WebSocket clients create/join; third rejected; health has counters and no tokens', async t => {
   const f = await setup(t); const code = await room(f); const third = await f.add();
   third.send('room.join', { code }); assert.equal((await third.next('error')).payload.code, 'ROOM_FULL');
