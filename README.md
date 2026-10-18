@@ -1,85 +1,40 @@
-# Digital Tennis 온라인 매칭 서버
+# Digital Tennis · 온라인 매칭 서버
 
-6자리 방 코드, 2인 방, WebSocket 시그널링, 릴레이를 담당하는 독립 제품 저장소입니다. 전체 프로젝트는 **외장 IMU를 별도로 부착한 NU40-DK**, Unity PC 게임, 1인 AI와 온라인 2인 대전을 12일·3명으로 개발합니다.
+두 플레이어를6자리 방 코드로 연결하고 WebSocket 시그널링·릴레이·재접속 상태를 관리한다.
 
-## 실행
+전체 제품은 NU40-DK에 **별도 외장 IMU**를 부착하는 라켓 컨트롤러와 Unity PC 테니스 게임으로 구성한다. 최초 계획은 **12일·3명**이다.
 
-Node.js 22 이상이 필요합니다. 현재 Mac 검증 환경은 Node 25.2.1, 의존성은 ws 8.22.0입니다.
+## 주요 기능
+
+- 최대2인 방·방 코드 충돌/만료·입력 검증
+- WebRTC offer/answer/ICE 전달과 epoch 기반 릴레이 합의
+- heartbeat·재접속 토큰 교체·방 격리
+
+## 빠른 시작
+
+Node.js22 이상, npm. 인터넷 연결은 TLS 프록시와 접근 가능한 wss 주소가 필요하다.
 
 ```sh
 npm ci --ignore-scripts
-npm start
-# 다른 터미널에서
-curl http://127.0.0.1:8080/health
+npm run check
 npm test
+npm start
 ```
 
-기본 주소는 `ws://127.0.0.1:8080/ws`입니다. Unity의 온라인 패널에서 한 사람이 Create room으로 만든 6자리 코드를 다른 사람이 Join room에 입력합니다. 두 PC가 같은 LAN에 있다면 `HOST=0.0.0.0 npm start`로 실행하고 양쪽에서 서버 Mac의 LAN 주소를 입력합니다. 인터넷 배포에는 TLS 종료 프록시와 `wss://`가 필요하며 이번 작업에서 공용 서버를 배포하지 않습니다. `.env.example`은 참고용이며 자동 로딩하지 않습니다.
+## 책임과 현재 범위
 
-## 구현한 동작
+기본 ws://127.0.0.1:8080/ws, /health로 상태 확인. Unity가 직접 DataChannel을 협상하고 실패 시 릴레이를 선택한다. 서버는 IMU/BLE·공 물리·타격·점수를 계산하지 않는다. 같은 Mac2프로세스 검증과 두 PC/WAN 실기는 구분한다.
 
-- 혼동되는 문자를 제외한 암호학적 난수 6자리 코드, 최대 2명, 중복 입장/3번째 참가 거부, 대기 10분 만료.
-- JSON v1 봉투, 요청 ID 응답, 16KiB 제한, 숫자/좌표/스윙 범위 검사, 소켓별 초당 60개·burst 120개 및 생성/입장 30초당 5회 제한.
-- 같은 방의 offer(호스트), answer(게스트), ICE 교환. SDP는 `{type, sdp}`, ICE는 `{candidate, sdpMid?, sdpMLineIndex?}`입니다.
-- host propose → guest ack → host commit 후 양쪽에 committed. epoch와 역할이 맞는 메시지만 중계합니다.
-- 게스트의 정규화 입력 → 호스트, 호스트의 상태/결과/일시정지 → 게스트. 게스트가 점수나 결과를 발행할 수 없습니다.
-- 5초 간격 클라이언트 heartbeat, 15초 무응답 종료, 끊긴 역할에 15초 재접속 유예, 토큰 교체, 새 epoch 합의, 유예 만료/명시적 퇴장 정리.
-- `/health`는 연결·방·중계 수만 반환하며 토큰은 노출하지 않습니다. 서버 재시작은 방을 초기화합니다. 호스트 이전은 지원하지 않습니다.
+## 구조와 문서
 
-Unity main은 실제 **WebRTC DataChannel P2P**를 양측 준비 확인 후 선택합니다. 8초 내 실패하거나 실제 채널이 끊기면 새 epoch의 WebSocket 릴레이로 합의합니다. 서버는 방/시그널링/릴레이를 담당하고 직접 DataChannel은 게임이 담당합니다. TURN 서버 운영과 서로 다른 두 PC/WAN 실기는 별도입니다. 같은 Mac 두 Unity 프로세스에서 직접 게임 송수신과 서버 게임 중계0, 실제 채널 실패 후 릴레이 복구를 검증했습니다. 상세 증거는 게임의 docs/software-integration.md를 확인하세요.
+`src/`: 서버/메시지 검증 · `tests/`: 단위/실소켓 검사 · `deploy/`: 배포 예제 · `.env.example`: 설정 예시
 
-## 메시지와 책임
+[온라인 계약](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/contracts/online-protocol.md), [환경 예제](.env.example)
 
-[온라인 계약](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/contracts/online-protocol.md)을 따르며, 타격 문맥을 위해 입력에 `rallyId`, `shotId`를 추가합니다. 상태는 `matchId`, `shotId`, `hits/nearHits/farHits/forehandHits/backhandHits`, `hitReady`, `status`도 전달합니다. phase는 Unity 열거형 이름 `WaitServe/InFlight/Rally/PointEnd/MatchEnd`입니다. 서버가 공을 계산하거나 입력을 타격 성공으로 판정하지 않습니다.
+## 도움말과 기여
 
-```json
-{"v":1,"type":"room.create","requestId":"r1","payload":{}}
-```
+재현 가능한 문제는 [이슈](https://github.com/digital-tennis/digital-tennis-match-server/issues)로 남긴다. 관리 주체는 [Digital Tennis](https://github.com/digital-tennis)이며 [기여 안내](CONTRIBUTING.md)를 따른다. 검증 커밋을 고정하고 실제 장치 성공·모의 검사·교차 빌드를 구분한다.
 
-게임 릴레이는 `payload: {epoch, message}`이며 내부 message는 `v/type/epoch/payload`를 가집니다. 입력에는 `inputSeq/playerId=guest`, 상태에는 `tick`을 추가합니다. 서버 알림의 requestId는 null입니다. 알려지지 않은 추가 필드는 권한에 영향을 주지 않으며, 사용되는 모든 필드는 검사합니다. 입력 순번 중복 제거와 스냅샷 순서 검사는 Unity에서 처리합니다.
+## 라이선스
 
-게임 간 서버 교대를 위해 게스트 입력 kind에 `serve/faultServe/letServe/netServe`를 허용합니다. 서버는 이를 의도만 중계하며 현재 서버·랠리·샷 일치 여부와 실제 성공 판정은 Unity 호스트가 처리합니다. 신규 `score` 필드는 게임·세트·세트별 결과·경기 형식·엔드 교대를 전달하는 호스트 상태이며 중계 중 보존됩니다. 점수·결과 발행 권한은 호스트에만 있습니다.
-
-`src/protocol.js`는 봉투/게임 필드 검사, `src/rooms.js`는 방 수명/권한/전송 합의, `src/server.js`는 HTTP/WebSocket 실행입니다. [ws 공식 문서](https://github.com/websockets/ws)를 사용하며 압축은 끕니다. 큐가 느린 소켓의 송신 버퍼가 256KiB를 넘으면 종료하여 다른 방이 밀리지 않게 합니다.
-
-## 검증
-
-`npm test`는 단위 테스트와 실제 WebSocket 두 클라이언트 통합 테스트 28개를 실행합니다. 코드 충돌 10회, 만료/정리, 잘못된 JSON·범위, 권한 위조, 방 격리, 전송 합의, 릴레이, 재접속 토큰 교체를 확인합니다. CI도 Node 22에서 같은 검사를 수행합니다. Unity 실행 증거와 두 PC 검증 범위는 게임 저장소 README에 기록합니다.
-
-## 개발할 기능과 제출 기준
-
-[초보 개발자용 상세 과제](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/products/digital-tennis-match-server.md)에서 상황·입력·출력·예제·예외·완료 기준을 확인합니다.
-
-- [MS-01 6자리 방 코드와 2인 방 관리](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/products/digital-tennis-match-server.md#ms-01)
-- [MS-02 WebSocket 요청과 응답 및 검증](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/products/digital-tennis-match-server.md#ms-02)
-- [MS-03 P2P 연결 정보 시그널링](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/products/digital-tennis-match-server.md#ms-03)
-- [MS-04 릴레이와 전송 모드 합의](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/products/digital-tennis-match-server.md#ms-04)
-- [MS-05 heartbeat와 재접속 유예 및 종료 정리](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/products/digital-tennis-match-server.md#ms-05)
-- [MS-06 서버 실행과 배포 및 운영 확인](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/products/digital-tennis-match-server.md#ms-06)
-
-## 개발 환경과 구조
-
-초기 담당 역할은 C / A 검토입니다. `src/`에 실행 코드, `tests/`에 Node 테스트가 있습니다. 실물 IMU·배선과 펌웨어 SDK는 컨트롤러 작업에서 별도로 결정합니다.
-
-## 검증과 협업
-
-- [12일 WBS](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/planning/wbs.md)
-- [컨트롤러 계약](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/contracts/controller-protocol.md)
-- [온라인 계약](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/contracts/online-protocol.md)
-- [수용 테스트](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/testing/acceptance.md)
-- [브랜치·PR 작업 방법](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/guides/contributing.md)
-- [모든 제품과 의존 관계](https://github.com/digital-tennis/digital-tennis-docs/blob/main/docs/project/repositories.md)
-
-라이선스는 코드와 제3자 자산 조건을 검토한 뒤 팀이 선택합니다.
-
-## 양측 동의 재경기
-
-게스트는 `kind=rematch`, `choice=1`(요청)/`0`(취소), 종료된 `matchId`를 일반 입력으로 중계합니다. 호스트 snapshot의 `rematchVotes=[host,guest]`는 boolean 2개이며 서버는 게스트의 상태/점수 발행을 허용하지 않습니다. 실제 경기 종료·두 동의·이전 경기 입력 차단·새 matchId 생성은 Unity 호스트의 책임입니다. 연결 끊김은 동의를 해제하며 재경기가 transport epoch나 방 역할을 바꾸지 않습니다. 선수의 `swingContact`/`swingServe`는 선택 boolean 메타데이터로 헛스윙과 서브 연출을 전달하고 점수를 결정하지 않습니다.
-
-실제 인정된 라켓 접촉의 `hasContactPoint/contactPoint`는 같은 스윙 ID에 연결된 유한한 3차원 좌표로 검증하여 그대로 전달합니다. Unity 게스트는 이를 버퍼된 스윙과 같은 시간선에 표시합니다.
-
-## 직접 전송 협의와 운영 구성
-
-새 클라이언트는 SDP/ICE·peer.ready를 다음 epoch에 묶고, DataChannel 실패 시 peer.failed로 새 relay 협의를 요청할 수 있습니다. 기존 relay-only 클라이언트도 동작합니다. 서버의 협의 성공만으로 실제 P2P 성공을 주장하지 않습니다. 실제 게임 전송 증거는 연동 게임 PR에서 별도로 남깁니다.
-
-[WSS 배포·검증·부하 안내](docs/deployment.md), `Dockerfile`, `deploy/compose.yaml`을 제공합니다. 공용 도메인/호스팅 계정에 실제 배포한 상태는 아닙니다.
+프로젝트 자체 코드·문서는 **[Apache-2.0](LICENSE)**이다. [NOTICE](NOTICE)와 [외부 코드·자산 고지](THIRD_PARTY_NOTICES.md)를 함께 확인한다. 외부 자산에 Apache-2.0을 덮어쓰지 않는다.
