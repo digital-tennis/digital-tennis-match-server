@@ -14,6 +14,8 @@
 
 공 물리·타격·점수와 경기 승패는 **게임 호스트**가 계산합니다. 서버는 BLE 기기에 연결하지 않습니다.
 
+v3 컨트롤러를 사용하는 게스트는 `controllerPrimary`, `motionHorizontalPositive/Negative`, `motionOverheadDown`, `motionShortRotation`, `motionObliqueDown/Up`을 중립 입력으로 보냅니다. 서버는 기존 온라인v1 envelope의 역할·epoch·범위·허용 kind만 검증하고, 게임 호스트가 서브·스매시 등의 의미를 결정합니다. 구형 서버는 이 kind를 거부하므로 새 게임 전에 서버를 갱신해야 합니다. 기존 샷 kind는 유지합니다.
+
 ## 빠른 시작
 
 **Node.js 22 이상, npm, Git**이 필요합니다.
