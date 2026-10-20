@@ -53,7 +53,7 @@ export function validateGame(sender, epoch, msg) {
   if (msg.type === 'input') {
     requireThat(sender === 'guest' && msg.playerId === 'guest', 'INVALID_ROLE');
     requireThat(uint(msg.inputSeq) && uint(p.eventId) && p.eventId > 0 && uint(p.rallyId) && p.rallyId > 0 && uint(p.shotId), 'INVALID_GAME_MESSAGE');
-    requireThat(['forehand', 'backhand', 'smash', 'volley', 'slice', 'lob', 'skill', 'character', 'serve', 'faultServe', 'letServe', 'netServe', 'rematch'].includes(p.kind) && bounded(p.power01, 0, 1) && bounded(p.aimX, -1, 1) && bounded(p.aimZ, -1, 1), 'INVALID_GAME_MESSAGE');
+    requireThat(['forehand', 'backhand', 'smash', 'volley', 'slice', 'lob', 'skill', 'character', 'serve', 'faultServe', 'letServe', 'netServe', 'rematch', 'controllerPrimary', 'motionHorizontalPositive', 'motionHorizontalNegative', 'motionOverheadDown', 'motionShortRotation', 'motionObliqueDown', 'motionObliqueUp'].includes(p.kind) && bounded(p.power01, 0, 1) && bounded(p.aimX, -1, 1) && bounded(p.aimZ, -1, 1), 'INVALID_GAME_MESSAGE');
     if (p.kind === 'rematch') requireThat(text(p.matchId, 64) && (p.choice === 0 || p.choice === 1), 'INVALID_GAME_MESSAGE');
     if (p.kind === 'character') requireThat(Number.isInteger(p.choice) && p.choice >= 0 && p.choice < 15, 'INVALID_GAME_MESSAGE');
   } else {
